@@ -26,10 +26,25 @@ KEY_AMOUNT = "amount"
 KEY_DATE = "date"
 KEY_CATEGORY = "category"
 
-DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+DAYS_IN_MONTH = [
+    31,
+    28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+]
 
 Date = tuple[int, int, int]
 TransStorage = list[dict[str, Any]]
+Expenses = tuple[float, float, dict[str, float]]
+Capital = tuple[float, float, float]
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -55,10 +70,6 @@ def is_leap_year(year: int) -> bool:
     return True
 
 
-def get_days_in_month() -> list[int]:
-    return DAYS_IN_MONTH[:]
-
-
 def validate_date_components(parts: list[str], day: int, month: int, year: int) -> bool:
     day_len_condition = len(parts[0]) == DAY_STRING_LEN
     month_len_condition = len(parts[1]) == MONTH_STRING_LEN
@@ -67,7 +78,7 @@ def validate_date_components(parts: list[str], day: int, month: int, year: int) 
         return False
     if month < 1 or month > MONTH_MAX:
         return False
-    days_in_month = [0, *get_days_in_month()]
+    days_in_month = [0, *DAYS_IN_MONTH]
     if is_leap_year(year):
         days_in_month[FEBRUARY] = FEB_LEAP_DAYS
     return not (day < 1 or day > days_in_month[month])
@@ -151,7 +162,7 @@ def compare_dates(t: dict[str, Any], target: Date) -> bool:
     t_year = int(t[KEY_DATE][2])
     t_month = int(t[KEY_DATE][1])
     t_day = int(t[KEY_DATE][0])
-    return (t_year, t_month, t_day) <= (target[2], target[1], target[0])
+    return (t_year, t_month, t_day) <= target
 
 
 def is_same_month(t: dict[str, Any], year: int, month: int) -> bool:
@@ -161,7 +172,7 @@ def is_same_month(t: dict[str, Any], year: int, month: int) -> bool:
 
 
 def sum_income(trans: TransStorage, y: int, m: int) -> tuple[float, float]:
-    total = monthly = 0.0
+    total = monthly = float(0)
     for t in trans:
         if t[KEY_TYPE] == "income":
             total += t[KEY_AMOUNT]
@@ -170,8 +181,8 @@ def sum_income(trans: TransStorage, y: int, m: int) -> tuple[float, float]:
     return total, monthly
 
 
-def sum_expenses(trans: TransStorage, y: int, m: int) -> tuple[float, float, dict[str, float]]:
-    total = monthly = 0.0
+def sum_expenses(trans: TransStorage, y: int, m: int) -> Expenses:
+    total = monthly = float(0)
     cat_exp: dict[str, float] = {}
     for t in trans:
         if t[KEY_TYPE] == "cost":
@@ -179,7 +190,8 @@ def sum_expenses(trans: TransStorage, y: int, m: int) -> tuple[float, float, dic
             if is_same_month(t, y, m):
                 monthly += t[KEY_AMOUNT]
                 cat = t[KEY_CATEGORY]
-                cat_exp[cat] = cat_exp.get(cat, 0.0) + t[KEY_AMOUNT]
+                cat_add = cat_exp.get(cat, float(0))
+                cat_exp[cat] = cat_add + t[KEY_AMOUNT]
     return total, monthly, cat_exp
 
 
@@ -197,7 +209,7 @@ def show_expense_breakdown(cat_exp: dict[str, float]) -> list[str]:
     return lines
 
 
-def display_statistics(date_str: str, capital: tuple[float, float, float], cat_exp: dict[str, float]) -> str:
+def display_statistics(date_str: str, capital: Capital, cat_exp: dict[str, float]) -> str:
     lines = [
         f"Your statistics as of {date_str}:",
         f"Total capital: {capital[0]:.2f} rubles",
@@ -282,7 +294,7 @@ def main() -> None:
         parts = line.split()
         if not parts:
             print(UNKNOWN_COMMAND_MSG)
-            continue
+            break
         process_command(parts)
 
 
