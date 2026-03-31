@@ -78,6 +78,7 @@ def validate_date_components(parts: list[str], day: int, month: int, year: int) 
         return False
     if month < 1 or month > MONTH_MAX:
         return False
+
     days_in_month = [0, *DAYS_IN_MONTH]
     if is_leap_year(year):
         days_in_month[FEBRUARY] = FEB_LEAP_DAYS
@@ -90,6 +91,7 @@ def extract_date(maybe_dt: str) -> Date | None:
         return None
     if not all(p.isdigit() for p in parts):
         return None
+
     d, m, y = map(int, parts)
     if not validate_date_components(parts, d, m, y):
         return None
@@ -111,10 +113,12 @@ def parse_amount(amount_str: str) -> float | None:
         return None
     if "." in amount_str and "," in amount_str:
         return None
+
     clean_str = amount_str.replace(",", ".")
     check_str = clean_str.removeprefix("-")
     if not check_str or not check_str.replace(".", "").isdigit():
         return None
+
     return float(clean_str)
 
 
@@ -122,9 +126,11 @@ def income_handler(amount: float, income_date: str) -> str:
     financial_transactions_storage.append({})
     if amount <= 0:
         return NONPOSITIVE_VALUE_MSG
+
     date_tup = extract_date(income_date)
     if date_tup is None:
         return INCORRECT_DATE_MSG
+
     financial_transactions_storage[-1] = {
         KEY_TYPE: "income",
         KEY_AMOUNT: amount,
@@ -137,11 +143,13 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
     financial_transactions_storage.append({})
     if amount <= 0:
         return NONPOSITIVE_VALUE_MSG
+
     date_tup = extract_date(income_date)
     if date_tup is None:
         return INCORRECT_DATE_MSG
     if not is_valid_category(category_name):
         return NOT_EXISTS_CATEGORY
+
     financial_transactions_storage[-1] = {
         KEY_TYPE: "cost",
         KEY_AMOUNT: amount,
@@ -229,6 +237,7 @@ def stats_handler(report_date: str) -> str:
     relevant = [t for t in financial_transactions_storage if t and compare_dates(t, date_tuple)]
     year = date_tuple[2]
     month = date_tuple[1]
+
     total_inc, monthly_inc = sum_income(relevant, year, month)
     total_exp, monthly_exp, cat_exp = sum_expenses(relevant, year, month)
     total_capital = total_inc - total_exp
@@ -239,12 +248,14 @@ def handle_income_command(parts: list[str]) -> None:
     if len(parts) != INCOME_PARTS:
         print(UNKNOWN_COMMAND_MSG)
         return
+
     amount_str = parts[1]
     date_str = parts[2]
     amount = parse_amount(amount_str)
     if amount is None:
         print(UNKNOWN_COMMAND_MSG)
         return
+
     result = income_handler(amount, date_str)
     print(result)
 
@@ -256,6 +267,7 @@ def handle_cost_command(parts: list[str]) -> None:
     if len(parts) != COST_PARTS:
         print(UNKNOWN_COMMAND_MSG)
         return
+
     category = parts[1]
     amount_str = parts[2]
     date_str = parts[3]
@@ -263,6 +275,7 @@ def handle_cost_command(parts: list[str]) -> None:
     if amount is None:
         print(UNKNOWN_COMMAND_MSG)
         return
+
     result = cost_handler(category, amount, date_str)
     print(result)
 
@@ -278,14 +291,15 @@ def handle_stats_command(parts: list[str]) -> None:
 
 def process_command(parts: list[str]) -> None:
     command = parts[0]
-    if command == "income":
-        handle_income_command(parts)
-    elif command == "cost":
-        handle_cost_command(parts)
-    elif command == "stats":
-        handle_stats_command(parts)
-    else:
-        print(UNKNOWN_COMMAND_MSG)
+    match command:
+        case "income":
+            handle_income_command(parts)
+        case "cost":
+            handle_cost_command(parts)
+        case "stats":
+            handle_stats_command(parts)
+        case _:
+            print(UNKNOWN_COMMAND_MSG)
 
 
 def main() -> None:
