@@ -52,32 +52,32 @@ class CircuitBreaker:
     def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
-            self.check_blocked_state(func)
+            self._check_blocked_state(func)
             try:
                 result = func(*args, **kwargs)
             except self.triggers_on as exc:
-                self.handle_failure(func, exc)
+                self._handle_failure(func, exc)
                 raise
             else:
-                self.reset_state()
+                self._reset_state()
             return result
 
         return wrapper
 
-    def check_blocked_state(self, func: CallableWithMeta[P, R_co]) -> None:
+    def _check_blocked_state(self, func: CallableWithMeta[P, R_co]) -> None:
         block_time = self.block_time
         if block_time is None:
             return
         now = datetime.now(UTC)
         if (now - block_time).total_seconds() < self.time_to_recover:
             raise BreakerError(func, block_time)
-        self.reset_state()
+        self._reset_state()
 
-    def reset_state(self) -> None:
+    def _reset_state(self) -> None:
         self.block_time = None
         self.triggers_count = 0
 
-    def handle_failure(self, func: CallableWithMeta[P, R_co], exc: Exception) -> None:
+    def _handle_failure(self, func: CallableWithMeta[P, R_co], exc: Exception) -> None:
         self.triggers_count += 1
         if self.triggers_count >= self.critical_count:
             self.block_time = datetime.now(UTC)
